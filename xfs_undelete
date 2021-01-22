@@ -172,6 +172,9 @@ proc investigateInodeBlock {ag block} {
 
 		## Ignore files last modified before the specified time.
 		if {$mtime<$::mmtime} continue
+		
+		## Ignore files delete after the specified time.
+		if {$ctime>$::maxctime} continue
 
 		## Get output filename.
 		set of [file join [dict get $::parameters o] [format "%s_%s" [clock format $ctime -format "%Y-%m-%d-%H-%M"] $inode]]
@@ -341,6 +344,7 @@ if {![info exists env(LANG)]} {
 if {[catch {set parameters [cmdline::getoptions argv {
 	{t.arg ""              "deleted since"}
 	{T.arg ""              "modified since"}
+	{b.arg ""              "deleted before"}
 	{r.arg "*"             "list of file extensions and mimetypes to recover"}
 	{i.arg "bin"           "list of file extensions and mimetypes to ignore"}
 	{z.arg "text/*"        "list of file extensions and mimetypes to remove all trailing zeroes from"}
@@ -435,6 +439,16 @@ if {[dict get $::parameters t] ne {}} {
 	}
 } else {
 	set mctime 0
+}
+
+## Get the maximum ctime to consider.
+if {[dict get $::parameters b] ne {}} {
+	if {[catch {clock scan [dict get $::parameters b]} maxctime]} {
+		puts stderr "Unable to parse timespec. Please put it in a way Tcl's \[clock scan\] can understand, e.g. -2hours."
+		exit 32
+	}
+} else {
+	set maxctime 0
 }
 
 ## Get the minimum mtime to consider.
